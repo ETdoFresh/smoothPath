@@ -19,13 +19,14 @@ function BezierCurve.new(p0, c0, p1, c1, isDebug)
 	-- Local Variables
 	--==============================
 	local isDebug = isDebug or false
-	local p0 = display.newCircle(p0.x, p0.y, 10)
-	local p1 = display.newCircle(p1.x, p1.y, 10)
-	local c0 = display.newCircle(c0.x, c0.y, 10)
-	local c1 = display.newCircle(c1.x, c1.y, 10)
+	local p0 = display.newCircle(p0.x, p0.y, 5)
+	local p1 = display.newCircle(p1.x, p1.y, 5)
+	local c0 = display.newCircle(c0.x, c0.y, 5)
+	local c1 = display.newCircle(c1.x, c1.y, 5)
 	local hasMoved = false
 	local handles = {p0, p1, c0, c1}
 	local color = {255,128,0}
+	local lines
 	
 	--==============================
 	-- Local Functions
@@ -37,7 +38,7 @@ function BezierCurve.new(p0, c0, p1, c1, isDebug)
 		local dy = pt0.y - pt1.y
 		return dx*dx + dy*dy
 	end
-
+	
 	-- Calculates line segments and draws them (into self.gfx)
 	local function drawBezier(granularity, r, g, b)
 		-- Setup Variables
@@ -84,7 +85,7 @@ function BezierCurve.new(p0, c0, p1, c1, isDebug)
 		
 		-- Set color and width of bezier curve (aka lines)
 		self.gfx:setColor(r,g,b)
-		self.gfx.width = 2
+		self.gfx.width = 4
 	end
 
 	-- Move debug handles around
@@ -112,6 +113,10 @@ function BezierCurve.new(p0, c0, p1, c1, isDebug)
 	local function update(event)
 		if (hasMoved) then
 			hasMoved = false
+			if (lines) then lines:removeSelf() end
+			lines = display.newGroup()
+			display.newLine(lines,p0.x,p0.y,c0.x,c0.y)
+			display.newLine(lines,p1.x,p1.y,c1.x,c1.y)
 			drawBezier(10,128,128,128)
 		end
 	end
@@ -133,7 +138,18 @@ function BezierCurve.new(p0, c0, p1, c1, isDebug)
 				handles[i]:removeEventListener("touch", dragHandles)
 			end
 		end
+		hasMoved = true
 		isDebug = not(isDebug)
+	end
+	
+	function self:removeSelf()
+		if (self.gfx) then self.gfx:removeSelf() end
+		for i = 1, #handles do
+			if (handles[i]) then handles[i]:removeSelf() end
+		end
+		self.gfx = nil
+		handles = nil
+		colors = nil
 	end
 	
 	--==============================
