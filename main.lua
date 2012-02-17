@@ -15,6 +15,7 @@ local pointsGroup
 local mode = "drawLine"
 local hud = display.newText(mode, 10, display.contentHeight-30, native.systemFontBold, 25)
 local bezierPath = {}
+local player
 
 -- Returns square distance (faster than regular distance)
 local function squareDistance(pointA, pointB)
@@ -143,6 +144,53 @@ local function bezierInterpolation()
 	end
 end
 
+-- Move player along the curve
+local function movePlayer(event)
+	-- If we made the player, let's move!
+	if (player) then
+		-- We check if we are still on the path
+		while bezierPath[player.pathPos] do
+			-- Loop through curve until we are far enough away to move player (we don't want to move player 1px at a time)
+			while bezierPath[player.pathPos]:pointOnSegment(player.curveSegment) do
+				-- If we are on the curve and we are further than the distance we need to go, move to next point!
+				local nextPt = bezierPath[player.pathPos]:pointOnSegment(player.curveSegment)
+				if (squareDistance(player, nextPt) >= player.speed*player.speed) then
+					-- I know this rotation equation is a bit intimidating, but lets looks at it.
+					-- Arctan( change in y, change in x) gets angle between two points, change to degrees, add 90 so object points east at 0 degrees (not north)
+					-- modulus 360 (because I don't like numbers outside of 360! aka 380 % 360 = 20)
+					player.rotation = (math.deg(math.atan2(nextPt.y - player.y, nextPt.x - player.x))+90)%360
+					player.x = nextPt.x
+					player.y = nextPt.y
+					return true
+				end
+				-- iterate through points on the curve
+				player.curveSegment = player.curveSegment + 1
+			end
+			-- iterate through curves
+			player.pathPos = player.pathPos + 1
+			player.curveSegment = 2 -- skip one since 1 is most likely where player is anyway
+		end
+		-- If we are off the curve, we are done!
+		Runtime:removeEventListener("enterFrame", movePlayer)
+	-- If no player was made, let's make him (or her)
+	else
+		-- A box with a circle front
+		player = display.newGroup()
+		display.newRect(player,-10,-10,20,20)
+		display.newCircle(player,0,-10,8)
+		player[2]:setFillColor(0,0,64)
+		player.speed = 8 -- how fast the player can move per frame
+		player.pathPos = 1
+		player.curveSegment = 1
+		local pos = bezierPath[player.pathPos]:pointOnSegment(player.curveSegment)
+		if (pos) then
+			player.x = pos.x
+			player.y = pos.y
+		end
+	end
+	return true
+end
+
 -- Touch event that places points into an array
 local function plotPoints(event)
 	if (mode == "drawLine") then
@@ -179,6 +227,10 @@ local function plotPoints(event)
 		line = nil
 		pointsGroup = nil
 		points = {}
+		mode = "movePlayer"
+		hud.text = mode
+	elseif (mode == "movePlayer" and event.phase == "ended") then
+		Runtime:addEventListener("enterFrame", movePlayer)
 		mode = "addHandles"
 		hud.text = mode
 	elseif (mode == "addHandles" and event.phase == "ended") then

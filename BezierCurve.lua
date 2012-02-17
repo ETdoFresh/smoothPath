@@ -27,6 +27,7 @@ function BezierCurve.new(p0, c0, p1, c1, isDebug)
 	local handles = {p0, p1, c0, c1}
 	local color = {255,128,0}
 	local lines
+	local segments
 	
 	--==============================
 	-- Local Functions
@@ -46,7 +47,7 @@ function BezierCurve.new(p0, c0, p1, c1, isDebug)
 		r = r or color[1]
 		g = g or color[2]
 		b = b or color[3]
-		local segments = {}
+		segments = {}
 		local p = bezierPoints
 		local inc = (1.0 / granularity)
 		local t = 0
@@ -150,6 +151,13 @@ function BezierCurve.new(p0, c0, p1, c1, isDebug)
 		self.gfx = nil
 		handles = nil
 		colors = nil
+	end
+	
+	function self:pointOnSegment(i)
+		if (segments[i]) then
+			return {x = segments[i].x, y = segments[i].y}
+		end
+		return false
 	end
 	
 	--==============================
